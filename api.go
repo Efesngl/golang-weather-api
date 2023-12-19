@@ -24,38 +24,30 @@ type Weather struct {
 
 func main() {
 	var w Weather
-	wMap := make(map[string]string)
+	weatherMap := make(map[string]string)
 	r := gin.Default()
-	r.GET("/today", func(c *gin.Context) {
-		link := "http://api.weatherapi.com/v1/forecast.json?key=fa802e2cc1714f7281c100339231912&q=Izmir&days=1&aqi=no&alerts=no"
-		getWeather(&w, link)
-		time.Sleep(time.Second * 1)
-		wMap["İl"] = "İzmir"
-		wMap["En düşük sıcaklık"] = fmt.Sprintf("%v", w.Forecast.Forecastday[0].Day.MintempC)
-		wMap["En yüksek sıcaklık"] = fmt.Sprintf("%v", w.Forecast.Forecastday[0].Day.MaxtempC)
-		wMap["Ortalama sıcaklık"] = fmt.Sprintf("%v", w.Forecast.Forecastday[0].Day.AvgtempC)
-		c.JSON(http.StatusOK, wMap)
-	})
-	r.GET("/yesterday", func(c *gin.Context) {
-		yesterday:=time.Now().Add(-24*time.Hour).Format("2006-01-02")
-		link := fmt.Sprintf("http://api.weatherapi.com/v1/history.json?key=fa802e2cc1714f7281c100339231912&q=Izmir&dt=%v",yesterday)
-		getWeather(&w, link)
-		time.Sleep(time.Second * 1)
-		wMap["İl"] = "İzmir"
-		wMap["En düşük sıcaklık"] = fmt.Sprintf("%v", w.Forecast.Forecastday[0].Day.MintempC)
-		wMap["En yüksek sıcaklık"] = fmt.Sprintf("%v", w.Forecast.Forecastday[0].Day.MaxtempC)
-		wMap["Ortalama sıcaklık"] = fmt.Sprintf("%v", w.Forecast.Forecastday[0].Day.AvgtempC)
-		c.JSON(http.StatusOK, wMap)
+	r.GET("/getweather/:method",func(c *gin.Context) {
+		method:=c.Param("method")
+		getWeather(&w,weatherMap,method)
+		c.JSON(http.StatusOK,weatherMap)
 	})
 	r.Run()
 }
 
-func getWeather(w *Weather, link string) {
-	fmt.Println(link)
+func getWeather(w *Weather, wMap map[string]string,method string) {
+	link:="http://api.weatherapi.com/v1/forecast.json?key=fa802e2cc1714f7281c100339231912&q=Izmir&days=1&aqi=no&alerts=no"
+	if method=="yesterday" {
+		yesterday:=time.Now().Add(-24*time.Hour).Format("2006-01-02")
+		link = fmt.Sprintf("http://api.weatherapi.com/v1/history.json?key=fa802e2cc1714f7281c100339231912&q=Izmir&dt=%v",yesterday)
+	}
 	req, _ := http.NewRequest("GET", link, nil)
 	client := http.Client{}
 	res, _ := client.Do(req)
 	resBody, _ := io.ReadAll(res.Body)
 	json.Unmarshal(resBody, &w)
+	wMap["İl"] = "İzmir"
+	wMap["En düşük sıcaklık"] = fmt.Sprintf("%v", w.Forecast.Forecastday[0].Day.MintempC)
+	wMap["En yüksek sıcaklık"] = fmt.Sprintf("%v", w.Forecast.Forecastday[0].Day.MaxtempC)
+	wMap["Ortalama sıcaklık"] = fmt.Sprintf("%v", w.Forecast.Forecastday[0].Day.AvgtempC)
 	defer res.Body.Close()
 }
